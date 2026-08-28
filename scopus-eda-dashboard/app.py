@@ -282,14 +282,20 @@ charts = {
     },
     "chart8": {
         "data": [{
-            "labels": top_venues["Source"].tolist(),
-            "values": top_venues["Count"].tolist(),
-            "type": "pie",
-            "hole": 0.45
+            "x": top_venues["Count"].tolist(),
+            "y": [s[:32] + ("..." if len(s) > 32 else "") for s in top_venues["Source"].tolist()],
+            "hovertext": top_venues["Source"].tolist(),
+            "type": "bar",
+            "orientation": "h",
+            "marker": {"color": "#8b5cf6"},
+            "hovertemplate": "<b>%{hovertext}</b><br>จำนวนบทความ: %{x} เรื่อง<extra></extra>"
         }],
         "layout": {
-            "title": "8. สัดส่วนการกระจุกตัวในวารสาร/การประชุมวิชาการระดับท็อป",
-            "font": {"family": "Prompt, sans-serif"}
+            "title": "8. การกระจุกตัวในวารสาร/การประชุมวิชาการระดับท็อป (8 อันดับแรก)",
+            "xaxis": {"title": "จำนวนบทความ"},
+            "font": {"family": "Prompt, sans-serif"},
+            "margin": {"l": 220, "r": 20, "b": 60, "t": 60},
+            "yaxis": {"autorange": "reversed"}
         }
     },
     "chart9": {
