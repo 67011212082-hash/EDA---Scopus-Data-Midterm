@@ -3,63 +3,287 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scopus Data EDA & Machine Learning Readiness Dashboard</title>
+    <title>แดชบอร์ด Scopus Bibliometric EDA & ความพร้อม ML</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
     <style>
-        body { background-color: #f1f5f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1e293b; }
-        .dashboard-header { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 30px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
-        .section-header { border-left: 6px solid #3b82f6; padding-left: 12px; margin-top: 35px; margin-bottom: 20px; font-weight: 700; }
-        .chart-card { background: #ffffff; border-radius: 10px; padding: 15px; margin-bottom: 24px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
-        .summary-badge { background: rgba(255, 255, 255, 0.15); padding: 8px 16px; border-radius: 8px; font-size: 0.95rem; }
+        :root {
+            --bg-body: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --primary-accent: #3b82f6;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            font-family: 'Prompt', 'Inter', sans-serif;
+            color: var(--text-main);
+            padding-bottom: 50px;
+        }
+
+        .dashboard-header {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+            color: white;
+            padding: 36px 30px;
+            border-radius: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 15px 30px -10px rgba(15, 23, 42, 0.25);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dashboard-header::after {
+            content: "";
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .kpi-card {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            padding: 16px 20px;
+            border-radius: 14px;
+            transition: all 0.25s ease;
+        }
+
+        .kpi-card:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .kpi-title {
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #94a3b8;
+            margin-bottom: 4px;
+        }
+
+        .kpi-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        /* Filter Tab Bar */
+        .nav-filter-wrapper {
+            position: sticky;
+            top: 15px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(16px);
+            padding: 8px 12px;
+            border-radius: 16px;
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.06);
+            margin-bottom: 30px;
+        }
+
+        .nav-pill-btn {
+            border: none;
+            background: transparent;
+            color: #475569;
+            padding: 8px 18px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            margin-right: 4px;
+        }
+
+        .nav-pill-btn:hover {
+            background: #f1f5f9;
+            color: #0f172a;
+        }
+
+        .nav-pill-btn.active {
+            background: #3b82f6;
+            color: #ffffff;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        /* Section Styling */
+        .dimension-section {
+            margin-bottom: 40px;
+            transition: opacity 0.3s ease;
+        }
+
+        .section-header-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1.15rem;
+            font-weight: 700;
+            padding: 8px 16px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+        }
+
+        .badge-dim1 { background: #eff6ff; color: #1d4ed8; border-left: 4px solid #3b82f6; }
+        .badge-dim2 { background: #ecfdf5; color: #047857; border-left: 4px solid #10b981; }
+        .badge-dim3 { background: #fffbe6; color: #b45309; border-left: 4px solid #f59e0b; }
+        .badge-dim4 { background: #f0fdfa; color: #0f766e; border-left: 4px solid #14b8a6; }
+        .badge-dim5 { background: #fef2f2; color: #b91c1c; border-left: 4px solid #ef4444; }
+
+        .takeaway-box {
+            background: #ffffff;
+            border-radius: 14px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            border: 1px solid #e2e8f0;
+            border-left: 4px solid #64748b;
+            font-size: 0.93rem;
+            color: #334155;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+        }
+
+        .chart-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 18px;
+            margin-bottom: 24px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.04);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .chart-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 24px -6px rgba(0, 0, 0, 0.08);
+        }
     </style>
 </head>
 <body>
     <div class="container-fluid px-4 py-4">
-        <div class="dashboard-header d-flex justify-content-between align-items-center">
-            <div>
-                <h1 class="h3 fw-bold mb-1">Scopus Bibliometric EDA & ML Readiness</h1>
-                <p class="mb-0 text-light opacity-75">การวิเคราะห์เชิงลึก 5 มิติ เพื่อเตรียมความพร้อมสำหรับงานวิจัยและโมเดล Machine Learning</p>
+        <!-- Dashboard Header -->
+        <div class="dashboard-header">
+            <div class="row align-items-center">
+                <div class="col-lg-6 mb-3 mb-lg-0">
+                    <h1 class="h3 fw-bold mb-2">Scopus Bibliometric EDA & ML Readiness</h1>
+                    <p class="mb-0 text-light opacity-75">การวิเคราะห์เชิงลึก 5 มิติ เพื่อเตรียมความพร้อมสำหรับงานวิจัยและโมเดล Machine Learning</p>
+                </div>
+                <div class="col-lg-6">
+                    <div class="row g-2">
+                        <div class="col-6 col-sm-3">
+                            <div class="kpi-card">
+                                <div class="kpi-title">ระเบียนทั้งหมด</div>
+                                <div class="kpi-value">6,000</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-sm-3">
+                            <div class="kpi-card">
+                                <div class="kpi-title">สาขาวิชาหลัก</div>
+                                <div class="kpi-value">10</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-sm-3">
+                            <div class="kpi-card">
+                                <div class="kpi-title">ช่วงปีตีพิมพ์</div>
+                                <div class="kpi-value">2020 - 2026</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-sm-3">
+                            <div class="kpi-card">
+                                <div class="kpi-title">ความสมบูรณ์ข้อมูล</div>
+                                <div class="kpi-value">96.4%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="d-flex gap-3">
-                <div class="summary-badge">Total Records: <strong>6,000</strong></div>
-                <div class="summary-badge">Subjects: <strong>10</strong></div>
-                <div class="summary-badge">Years: <strong>2020 - 2026</strong></div>
+        </div>
+
+        <!-- Filter Tab Navigation Bar -->
+        <div class="nav-filter-wrapper d-flex align-items-center gap-1 overflow-auto">
+            <button class="nav-pill-btn active" onclick="filterDimension('all', this)">✨ ภาพรวมทั้งหมด</button>
+            <button class="nav-pill-btn" onclick="filterDimension('dim1', this)">🔤 1. NLP & ภาษา</button>
+            <button class="nav-pill-btn" onclick="filterDimension('dim2', this)">📈 2. แนวโน้มเชิงเวลา</button>
+            <button class="nav-pill-btn" onclick="filterDimension('dim3', this)">📚 3. แหล่งตีพิมพ์</button>
+            <button class="nav-pill-btn" onclick="filterDimension('dim4', this)">🌐 4. เครือข่ายความร่วมมือ</button>
+            <button class="nav-pill-btn" onclick="filterDimension('dim5', this)">🤖 5. ความพร้อม ML</button>
+        </div>
+
+        <!-- Dimension Sections -->
+        <div id="dim1" class="dimension-section">
+            <div class="section-header-badge badge-dim1">
+                มิติที่ 1: วิเคราะห์ความซับซ้อนของภาษาและข้อความ (NLP & Text Richness)
+            </div>
+            <div class="takeaway-box">
+                💡 <strong>ข้อสรุปสำคัญ:</strong> พบคลังคำและคำสำคัญเฉพาะกลุ่มที่มีรูปแบบโดดเด่นในแต่ละสาขาวิชา ค่า TTR แสดงให้เห็นถึงความหลากหลายเชิงคำศัพท์ของคัดย่อ เหมาะสมต่อการฝึกโมเดลจำแนกประเภทข้อความ (Text Classification)
+            </div>
+            <div class="row">
+                <div class="col-lg-6"><div class="chart-card"><div id="chart1"></div></div></div>
+                <div class="col-lg-6"><div class="chart-card"><div id="chart2"></div></div></div>
+                <div class="col-12"><div class="chart-card"><div id="chart3"></div></div></div>
             </div>
         </div>
 
-        <h4 class="section-header text-primary">มิติที่ 1: วิเคราะห์ความซับซ้อนของภาษาและข้อความ (NLP & Text Richness)</h4>
-        <div class="row">
-            <div class="col-lg-6"><div class="chart-card"><div id="chart1"></div></div></div>
-            <div class="col-lg-6"><div class="chart-card"><div id="chart2"></div></div></div>
-            <div class="col-12"><div class="chart-card"><div id="chart3"></div></div></div>
+        <div id="dim2" class="dimension-section">
+            <div class="section-header-badge badge-dim2">
+                มิติที่ 2: วิเคราะห์แนวโน้มเชิงเวลา (Temporal & Evolution Analysis)
+            </div>
+            <div class="takeaway-box">
+                💡 <strong>ข้อสรุปสำคัญ:</strong> ปริมาณงานวิจัยเติบโตสูงในช่วงปี 2024-2025 โดยมีคำสำคัญอุบัติใหม่ (Emerging Keywords) เช่น LLMs, Vision, Fusion ที่มีอัตราเติบโตสูง สะท้อนถึงทิศทางการวิจัยสมัยใหม่
+            </div>
+            <div class="row">
+                <div class="col-lg-4"><div class="chart-card"><div id="chart4"></div></div></div>
+                <div class="col-lg-4"><div class="chart-card"><div id="chart5"></div></div></div>
+                <div class="col-lg-4"><div class="chart-card"><div id="chart6"></div></div></div>
+            </div>
         </div>
 
-        <h4 class="section-header text-success">มิติที่ 2: วิเคราะห์แนวโน้มเชิงเวลา (Temporal & Evolution Analysis)</h4>
-        <div class="row">
-            <div class="col-lg-4"><div class="chart-card"><div id="chart4"></div></div></div>
-            <div class="col-lg-4"><div class="chart-card"><div id="chart5"></div></div></div>
-            <div class="col-lg-4"><div class="chart-card"><div id="chart6"></div></div></div>
+        <div id="dim3" class="dimension-section">
+            <div class="section-header-badge badge-dim3">
+                มิติที่ 3: วิเคราะห์โครงสร้างการตีพิมพ์และแหล่งเผยแพร่ (Publication & Venue Profiles)
+            </div>
+            <div class="takeaway-box">
+                💡 <strong>ข้อสรุปสำคัญ:</strong> Conference Papers มีสัดส่วนเด่นในกลุ่มคอมพิวเตอร์และซอฟต์แวร์ ขณะที่งานวิจัยแบบ Open Access แสดงความเปรียบด้าน Citation Advantage ที่ได้รับการอ้างอิงสูงกว่ากลุ่ม Subscription อย่างชัดเจน
+            </div>
+            <div class="row">
+                <div class="col-lg-4"><div class="chart-card"><div id="chart7"></div></div></div>
+                <div class="col-lg-4"><div class="chart-card"><div id="chart8"></div></div></div>
+                <div class="col-lg-4"><div class="chart-card"><div id="chart9"></div></div></div>
+            </div>
         </div>
 
-        <h4 class="section-header text-warning">มิติที่ 3: วิเคราะห์โครงสร้างการตีพิมพ์และแหล่งเผยแพร่ (Publication & Venue Profiles)</h4>
-        <div class="row">
-            <div class="col-lg-4"><div class="chart-card"><div id="chart7"></div></div></div>
-            <div class="col-lg-4"><div class="chart-card"><div id="chart8"></div></div></div>
-            <div class="col-lg-4"><div class="chart-card"><div id="chart9"></div></div></div>
+        <div id="dim4" class="dimension-section">
+            <div class="section-header-badge badge-dim4">
+                มิติที่ 4: วิเคราะห์เครือข่ายและความร่วมมือ (Collaboration & Network Metrics)
+            </div>
+            <div class="takeaway-box">
+                💡 <strong>ข้อสรุปสำคัญ:</strong> รูปแบบการเขียนบทความส่วนใหญ่อยู่ในลักษณะความร่วมมือ (Co-authorship) 3-5 คน โดยมีสถาบันผู้เขียนจากประเทศมหาอำนาจทางวิชาการครองสัดส่วนหลัก
+            </div>
+            <div class="row">
+                <div class="col-lg-6"><div class="chart-card"><div id="chart10"></div></div></div>
+                <div class="col-lg-6"><div class="chart-card"><div id="chart11"></div></div></div>
+            </div>
         </div>
 
-        <h4 class="section-header text-info">มิติที่ 4: วิเคราะห์เครือข่ายและความร่วมมือ (Collaboration & Network Metrics)</h4>
-        <div class="row">
-            <div class="col-lg-6"><div class="chart-card"><div id="chart10"></div></div></div>
-            <div class="col-lg-6"><div class="chart-card"><div id="chart11"></div></div></div>
-        </div>
-
-        <h4 class="section-header text-danger">มิติที่ 5: วิเคราะห์ความพร้อมเชิง Machine Learning (ML Readiness & Separability)</h4>
-        <div class="row">
-            <div class="col-lg-6"><div class="chart-card"><div id="chart12"></div></div></div>
-            <div class="col-lg-6"><div class="chart-card"><div id="chart13"></div></div></div>
-            <div class="col-12"><div class="chart-card"><div id="chart14"></div></div></div>
+        <div id="dim5" class="dimension-section">
+            <div class="section-header-badge badge-dim5">
+                มิติที่ 5: วิเคราะห์ความพร้อมเชิง Machine Learning (ML Readiness & Separability)
+            </div>
+            <div class="takeaway-box">
+                💡 <strong>ข้อสรุปสำคัญ:</strong> การลดมิติด้วย t-SNE แสดงถึงโครงสร้างเกาะกลุ่ม (Cluster Separability) ที่ชัดเจนในพื้นที่ความหมาย เวกเตอร์ฟีเจอร์มีความพร้อมสูงในการนำไปฝึกฝน Supervised Classifiers
+            </div>
+            <div class="row">
+                <div class="col-lg-6"><div class="chart-card"><div id="chart12"></div></div></div>
+                <div class="col-lg-6"><div class="chart-card"><div id="chart13"></div></div></div>
+                <div class="col-12"><div class="chart-card"><div id="chart14"></div></div></div>
+            </div>
         </div>
     </div>
 
@@ -71,6 +295,21 @@
             if (spec.data && spec.data.length > 0) {
                 Plotly.newPlot(chartId, spec.data, spec.layout, defaultPlotConfig);
             }
+        }
+
+        function filterDimension(dimId, btnElement) {
+            document.querySelectorAll('.nav-pill-btn').forEach(btn => btn.classList.remove('active'));
+            btnElement.classList.add('active');
+
+            const sections = document.querySelectorAll('.dimension-section');
+            sections.forEach(sec => {
+                if (dimId === 'all') {
+                    sec.style.display = 'block';
+                } else {
+                    sec.style.display = (sec.id === dimId) ? 'block' : 'none';
+                }
+            });
+            window.dispatchEvent(new Event('resize'));
         }
     </script>
 </body>
