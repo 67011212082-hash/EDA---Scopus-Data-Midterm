@@ -102,22 +102,14 @@ df["OA_Status"] = df["Open Access"].apply(lambda x: "Open Access" if pd.notna(x)
 
 # ----------------- มิติที่ 4: Collaboration -----------------
 def count_authors(author_str):
-    if pd.isna(author_str) or not str(author_str).strip(): return 0
+    if pd.isna(author_str) or not str(author_str).strip(): return 1
     return len(str(author_str).split(";"))
 df["Author_Count"] = df["Authors"].apply(count_authors)
 
-def extract_country(affil):
-    if pd.isna(affil): return "Unknown"
-    tokens = str(affil).split(",")
-    return tokens[-1].strip() if tokens else "Unknown"
-
-affil_col = "Affiliations" if "Affiliations" in df.columns else ("Authors with affiliations" if "Authors with affiliations" in df.columns else None)
-if affil_col:
-    country_counts = df[affil_col].apply(extract_country).value_counts()
-    country_counts = country_counts[~country_counts.index.isin(["Unknown", ""])].head(10).reset_index()
-    country_counts.columns = ["Country", "Count"]
-else:
-    country_counts = pd.DataFrame(columns=["Country", "Count"])
+author_bins = [-1, 1, 3, 5, 10, 1000]
+author_labels = ["1 คน (เดี่ยว)", "2-3 คน (เล็ก)", "4-5 คน (กลาง)", "6-10 คน (ใหญ่)", ">10 คน (ใหญ่มาก)"]
+df["Author_Group"] = pd.cut(df["Author_Count"], bins=author_bins, labels=author_labels)
+author_stats = df.groupby("Author_Group", observed=False)["Cited by"].agg(["count", "mean"]).reset_index()
 
 # ----------------- มิติที่ 5: ML Readiness -----------------
 ml_sample = df[df["Subject"].isin(top_subjects)].sample(n=min(1000, len(df)), random_state=42)
@@ -325,18 +317,34 @@ charts = {
         }
     },
     "chart11": {
-        "data": [{
-            "x": country_counts["Count"].tolist(),
-            "y": country_counts["Country"].tolist(),
-            "type": "bar",
-            "orientation": "h",
-            "marker": {"color": "#14b8a6"}
-        }],
+        "data": [
+            {
+                "x": author_stats["Author_Group"].astype(str).tolist(),
+                "y": np.round(author_stats["mean"].values, 2).tolist(),
+                "type": "bar",
+                "name": "การอ้างอิงเฉลี่ย (ครั้ง)",
+                "marker": {"color": "#14b8a6"},
+                "hovertemplate": "<b>%{x}</b><br>การอ้างอิงเฉลี่ย: %{y} ครั้ง<extra></extra>"
+            },
+            {
+                "x": author_stats["Author_Group"].astype(str).tolist(),
+                "y": author_stats["count"].tolist(),
+                "type": "scatter",
+                "mode": "lines+markers",
+                "name": "จำนวนบทความ (เรื่อง)",
+                "yaxis": "y2",
+                "line": {"color": "#f59e0b", "width": 3},
+                "marker": {"size": 8},
+                "hovertemplate": "<b>%{x}</b><br>จำนวนบทความ: %{y} เรื่อง<extra></extra>"
+            }
+        ],
         "layout": {
-            "title": "11. 10 อันดับประเทศของสถาบันต้นสังกัดของผู้เขียน",
-            "xaxis": {"title": "จำนวนบทความ"},
-            "yaxis": {"title": "ประเทศ"},
-            "font": {"family": "Prompt, sans-serif"}
+            "title": "11. ความสัมพันธ์ระหว่างขนาดทีมผู้เขียนและการได้รับการอ้างอิง (Citation Advantage)",
+            "xaxis": {"title": "กลุ่มขนาดทีมผู้เขียน"},
+            "yaxis": {"title": "การอ้างอิงเฉลี่ย (ครั้ง)"},
+            "yaxis2": {"title": "จำนวนบทความ (เรื่อง)", "overlaying": "y", "side": "right"},
+            "font": {"family": "Prompt, sans-serif"},
+            "legend": {"orientation": "h", "y": -0.2, "x": 0.1}
         }
     },
     "chart12": {
